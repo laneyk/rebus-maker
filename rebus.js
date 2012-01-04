@@ -1,19 +1,10 @@
 function load() {
   canvas = document.getElementById("canvas");
-  imgDiv = document.getElementById("imgDiv"); 
-  edit_button = document.getElementById("edit_button");
-  incr_button = document.getElementById("incr_button");
-  decr_button = document.getElementById("decr_button");
-  copy_button = document.getElementById("copy_button");
-  top_button = document.getElementById("top_button");
-  del_button = document.getElementById("del_button");
   dummy_canvas = document.getElementById("dummy_canvas");
-  button_div = document.getElementById("button_div");
-
   canvas.addEventListener("mousedown",handleMouseDown,false);
   document.addEventListener("keydown",handleKeyDown,false);
 
-  resizer_size = 9;
+  resizer_size = 9; 
 
   photoResults = new Array();
   imageRequests = new Array();
@@ -33,21 +24,13 @@ function load() {
   drawCanvas();
 }
 
-function isInside(point, obj) {
-  var point_x = (obj.width > 0) ? point.x : -point.x;
-  var obj_x = (obj.width > 0) ? obj.x : -obj.x;
-  var obj_width = (obj.width > 0) ? obj.width : -obj.width;
-  var point_y = (obj.height > 0) ? point.y : -point.y;
-  var obj_y = (obj.height > 0) ? obj.y : -obj.y;
-  var obj_height = (obj.height > 0) ? obj.height : -obj.height;
-  if (point_x >= obj_x && point_x <= obj_x + obj_width) {
-    if (point_y >= obj_y && point_y <= obj_y + obj_height) {
-      return true;
-    }
-  }
-  return false;
-}
 
+/** 
+ * INSIDE TESTING
+ */
+
+
+// Tests if point is inside the object
 function hitTest(point, obj) {
   if (obj.type == "word" || obj.type == "pic") {
     if (isInside(point, obj)) {
@@ -79,47 +62,17 @@ function hitTest(point, obj) {
   return false;
 }
 
-function pointDistance(point1, point2) {
-  return Math.sqrt((point1.x-point2.x)*(point1.x-point2.x) + (point1.y-point2.y)*(point1.y-point2.y));
-}
-
-function handleMouseMove(e) {
-  var whereClicked = getCursorPosition(e);
-  if (line_started) {
-    cur_line.x_diff = whereClicked.x - cur_line.x;
-    cur_line.y_diff = whereClicked.y - cur_line.y;
-    drawCanvas();
-    drawLine(cur_line);
-  } else if (circle_started) {
-    cur_circle.width = whereClicked.x - cur_circle.x;
-    cur_circle.height = whereClicked.y - cur_circle.y;
-    drawCanvas();
-    drawCircle(cur_circle);
-  } else if (object_dragged) { 
-    var drag_obj = objects[drag_object_index];
-    if (resize_pic) {
-      drag_obj.width = whereClicked.x - drag_obj.x - drag_x;
-      drag_obj.height = whereClicked.y - drag_obj.y - drag_y;
-    } else if (moving_line_endpoint) {
-      if (endpoint_to_move == 0) {
-        var end_x = drag_obj.x + drag_obj.x_diff;
-        var end_y = drag_obj.y + drag_obj.y_diff;
-        drag_obj.x = whereClicked.x - drag_x;
-        drag_obj.y = whereClicked.y - drag_y;
-        drag_obj.x_diff = end_x - drag_obj.x;
-        drag_obj.y_diff = end_y - drag_obj.y;
-      } else {
-        drag_obj.x_diff = whereClicked.x - drag_x + drag_obj.orig_x_diff - drag_obj.x;
-        drag_obj.y_diff = whereClicked.y - drag_y + drag_obj.orig_y_diff - drag_obj.y;
-      }
-    } else {
-      drag_obj.x = whereClicked.x - drag_x;
-      drag_obj.y = whereClicked.y - drag_y;
+// Tests if point is inside the rectangle defined by obj
+function isInside(point, obj) {
+  if ((point.x - obj.x) * (point.x - obj.x - obj.width) < 0) {
+    if ((point.y - obj.y) * (point.y - obj.y - obj.height) < 0) {
+      return true;
     }
-    drawCanvas();
-  } 
+  }
+  return false;
 }
 
+// Tests if point is in the circle/oval
 function isInCircle(point, circ) {
   var centerX = circ.x + circ.width / 2;
   var centerY = circ.y + circ.height / 2;
@@ -145,52 +98,65 @@ function isInCircle(point, circ) {
   return (ctx.isPointInPath(point.x, point.y) || isInside(point, getResizer(circ)));
 }
 
-function drawCircle(circ, selected) {
-  var centerX = circ.x + circ.width / 2;
-  var centerY = circ.y + circ.height / 2;
-  var width = circ.width;
-  var height = circ.height;
-
-  ctx.beginPath();
-  ctx.moveTo(centerX, centerY - height / 2);
-  ctx.bezierCurveTo(
-    centerX + width/2, centerY - height / 2,
-    centerX + width/2, centerY + height / 2,
-    centerX, centerY + height / 2
-  );
-  ctx.bezierCurveTo(
-    centerX - width/2, centerY + height/2,
-    centerX - width/2, centerY - height/2,
-    centerX, centerY - height/2
-  );
-
-  ctx.strokeStyle = "#000";
-  ctx.lineWidth = circ.lineWidth;
-  ctx.stroke();
-
-  if (selected) {
-    drawResizer(circ);
-  }
+function pointDistance(point1, point2) {
+  return Math.sqrt((point1.x-point2.x)*(point1.x-point2.x) + (point1.y-point2.y)*(point1.y-point2.y));
 }
 
-function drawLine(line, selected) {
-  ctx.beginPath();
-  ctx.moveTo(line.x, line.y);
-  ctx.lineTo(line.x + line.x_diff, line.y + line.y_diff);
-  ctx.strokeStyle = selected ? "#f00" : "#000";
-  ctx.lineWidth = line.width;
-  ctx.stroke();
-  
-  if (selected) {
-    var length = Math.sqrt(line.x_diff*line.x_diff + line.y_diff*line.y_diff);
-    ctx.beginPath();
-    ctx.moveTo(line.x, line.y);
-    ctx.lineTo(line.x + line.x_diff / length * line.width, line.y + line.y_diff / length * line.width);
-    ctx.moveTo(line.x + line.x_diff, line.y + line.y_diff);
-    ctx.lineTo(line.x + line.x_diff - line.x_diff / length * line.width, line.y + line.y_diff - line.y_diff / length * line.width);
-    ctx.strokeStyle = "#00f";
-    ctx.stroke();
+function hitsEndpoint(point, line) {
+  var dist1 = pointDistance(point, {x:line.x, y:line.y});
+  var dist2 = pointDistance(point, {x:line.x + line.x_diff, y:line.y + line.y_diff});
+  if (dist1 < line.width) {
+    return 0;
+  } else if (dist2 < line.width) {
+    return 1;
   }
+  return -1;
+}
+
+
+/**
+ * EVENT HANDLERS
+ */
+
+function handleMouseMove(e) {
+  var whereClicked = getCursorPosition(e);
+  
+  // If we're in the middle of defining a new line
+  if (line_started) {
+    cur_line.x_diff = whereClicked.x - cur_line.x;
+    cur_line.y_diff = whereClicked.y - cur_line.y;
+    drawCanvas();
+    drawLine(cur_line);
+  // In the middle of defining a new circle
+  } else if (circle_started) {
+    cur_circle.width = whereClicked.x - cur_circle.x;
+    cur_circle.height = whereClicked.y - cur_circle.y;
+    drawCanvas();
+    drawCircle(cur_circle);
+  // Dragging something
+  } else if (object_dragged) { 
+    var drag_obj = objects[drag_object_index];
+    if (resize_pic) {
+      drag_obj.width = whereClicked.x - drag_obj.x - drag_x;
+      drag_obj.height = whereClicked.y - drag_obj.y - drag_y;
+    } else if (moving_line_endpoint) {
+      if (endpoint_to_move == 0) {
+        var end_x = drag_obj.x + drag_obj.x_diff;
+        var end_y = drag_obj.y + drag_obj.y_diff;
+        drag_obj.x = whereClicked.x - drag_x;
+        drag_obj.y = whereClicked.y - drag_y;
+        drag_obj.x_diff = end_x - drag_obj.x;
+        drag_obj.y_diff = end_y - drag_obj.y;
+      } else {
+        drag_obj.x_diff = whereClicked.x - drag_x + drag_obj.orig_x_diff - drag_obj.x;
+        drag_obj.y_diff = whereClicked.y - drag_y + drag_obj.orig_y_diff - drag_obj.y;
+      }
+    } else {
+      drag_obj.x = whereClicked.x - drag_x;
+      drag_obj.y = whereClicked.y - drag_y;
+    }
+    drawCanvas();
+  } 
 }
 
 function handleMouseUp(e) {
@@ -219,49 +185,11 @@ function handleMouseOut(e) {
   handleMouseUp(e);
 }
 
-function lineObj(x, y, x_diff, y_diff, width) {
-  this.type = "line";
-  this.x = x;
-  this.y = y;
-  this.x_diff = x_diff;
-  this.y_diff = y_diff;
-  this.width = width;
-}
-
-function circleObj(x, y, width, height, lineWidth) {
-  this.type = "circle";
-  this.x = x;
-  this.y = y;
-  this.width = width;
-  this.height = height;
-  this.lineWidth = lineWidth;
-}
-
-function picObj(obj, x, y, width, height, origWidth, origHeight) {
-  this.type = "pic";
-  this.img = obj;
-  this.x = x;
-  this.y = y;
-  this.origWidth = origWidth;
-  this.origHeight = origHeight;
-  this.width = width;
-  this.height = height;
-}
-
-function hitsEndpoint(point, line) {
-  var dist1 = pointDistance(point, {x:line.x, y:line.y});
-  var dist2 = pointDistance(point, {x:line.x + line.x_diff, y:line.y + line.y_diff});
-  if (dist1 < line.width) {
-    return 0;
-  } else if (dist2 < line.width) {
-    return 1;
-  }
-  return -1;
-}
-
 function handleMouseDown(e) {
   var whereClicked = getCursorPosition(e);
+  //We're choosing one of the images
   if (picking_photo) {
+    //Figure out which one was picked
     for (var i = 0; i < image_objects.length; i++) {
       if (isInside(whereClicked, image_objects[i])) {
         var cur_obj = objects[selected_object_index];
@@ -352,62 +280,103 @@ function handleMouseDown(e) {
   } 
 }
 
+function handleKeyDown(e) {
+    e = e || window.event;
+    switch (e.keyCode) {
+        case 187:
+          increaseSize();
+          break;
+        case 189:
+          decreaseSize();
+          break;
+    }
+}
+
+function getCursorPosition(e) {
+   	var x;
+    var y;
+    if (e.pageX != undefined && e.pageY != undefined) {
+		x = e.pageX;
+		y = e.pageY;
+    } else {
+		x = e.clientX + document.body.scrollLeft +
+				document.documentElement.scrollLeft;
+		y = e.clientY + document.body.scrollTop +
+				document.documentElement.scrollTop;
+    }
+    x -= canvas.offsetLeft;
+    y -= canvas.offsetTop;
+    return {x:x,y:y};
+}
+
+
+/**
+ * DRAWING STUFF!
+ */
+ 
+
+function drawCircle(circ, selected) {
+  var centerX = circ.x + circ.width / 2;
+  var centerY = circ.y + circ.height / 2;
+  var width = circ.width;
+  var height = circ.height;
+
+  ctx.beginPath();
+  ctx.moveTo(centerX, centerY - height / 2);
+  ctx.bezierCurveTo(
+    centerX + width/2, centerY - height / 2,
+    centerX + width/2, centerY + height / 2,
+    centerX, centerY + height / 2
+  );
+  ctx.bezierCurveTo(
+    centerX - width/2, centerY + height/2,
+    centerX - width/2, centerY - height/2,
+    centerX, centerY - height/2
+  );
+
+  ctx.strokeStyle = "#000";
+  ctx.lineWidth = circ.lineWidth;
+  ctx.stroke();
+
+  if (selected) {
+    drawResizer(circ);
+  }
+}
+
+function drawLine(line, selected) {
+  ctx.beginPath();
+  ctx.moveTo(line.x, line.y);
+  ctx.lineTo(line.x + line.x_diff, line.y + line.y_diff);
+  ctx.strokeStyle = selected ? "#f00" : "#000";
+  ctx.lineWidth = line.width;
+  ctx.stroke();
+  
+  if (selected) {
+    var length = Math.sqrt(line.x_diff*line.x_diff + line.y_diff*line.y_diff);
+    ctx.beginPath();
+    ctx.moveTo(line.x, line.y);
+    ctx.lineTo(line.x + line.x_diff / length * line.width, line.y + line.y_diff / length * line.width);
+    ctx.moveTo(line.x + line.x_diff, line.y + line.y_diff);
+    ctx.lineTo(line.x + line.x_diff - line.x_diff / length * line.width, line.y + line.y_diff - line.y_diff / length * line.width);
+    ctx.strokeStyle = "#00f";
+    ctx.stroke();
+  }
+}
+
 function drawCanvas() {
-  var oldStyle = ctx.fillStyle;
   ctx.fillStyle = "#fff";
-  ctx.lineWidth = 8;
   ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle = oldStyle;
   
   for (var i = 0; i < objects.length; i++) {
     var selected = (object_selected && i == selected_object_index);
     drawObject(objects[i], selected);
   }
   
+  ctx.lineWidth = 8;
+  ctx.fillStyle = "#000";
   ctx.strokeStyle = "#000";
   ctx.strokeRect(0,0,canvas.width,canvas.height);
   updateLabels();
-}
-
-function updateLabels() {
-  if (object_selected) {
-    var obj = objects[selected_object_index];
-    var desc = getDesc(obj);
-  }
-
-  if (object_selected && obj.type == "word") {
-    edit_button.style.visibility = "visible";
-    edit_button.innerHTML = "Convert " + desc + " to Image";
-  } else {
-    edit_button.style.visibility = "hidden";
-  }
-  
-  if (object_selected && (obj.type == "line" || obj.type == "circle")) {
-    incr_button.style.visibility = "visible";
-    decr_button.style.visibility = "visible";
-  } else {
-    incr_button.style.visibility = "hidden";
-    decr_button.style.visibility = "hidden";
-  }
-
-  if (object_selected) {
-    copy_button.style.visibility = "visible";
-    copy_button.innerHTML = "Copy " + desc;
-    del_button.style.visibility = "visible";
-    del_button.innerHTML = "Delete " + desc;
-    top_button.style.visibility = "visible";
-    top_button.innerHTML = "Move " + desc + " to Top";
-  } else {
-    copy_button.style.visibility = "hidden";
-    del_button.style.visibility = "hidden";
-    top_button.style.visibility = "hidden";
-  }
-
-  if (picking_photo) {
-    button_div.style.display = "none";
-  } else {
-    button_div.style.display = "block";
-  }
 }
 
 function drawResizer(obj) {
@@ -463,41 +432,38 @@ function drawObject(obj, selected) {
   }
 }
 
-function startLine() {
-  picking_photo = false;
-  line_started = true;
-  updateLabels();
+
+/**
+ * Objects for line, circle, picture, etc.
+ */
+
+function lineObj(x, y, x_diff, y_diff, width) {
+  this.type = "line";
+  this.x = x;
+  this.y = y;
+  this.x_diff = x_diff;
+  this.y_diff = y_diff;
+  this.width = width;
 }
 
-function startCircle() {
-  picking_photo = false;
-  circle_started = true;
-  updateLabels();
+function circleObj(x, y, width, height, lineWidth) {
+  this.type = "circle";
+  this.x = x;
+  this.y = y;
+  this.width = width;
+  this.height = height;
+  this.lineWidth = lineWidth;
 }
 
-function addWord() {
-  picking_photo = false;
-  line_started = false;
-  circle_started = false;
-  updateLabels();
-  var word_text = promptForWord();
-  if (word_text) {
-    pushWord(word_text, 50, 50, -1, -1, 70);
-  }
-  preGetPhotoResults(word_text);
-}
-
-function pushWord(text, x, y, width, height, size) {
-    var new_word = new word(text, x, y, width, height, size);
-    objects.push(new_word);
-    object_selected = true;
-    selected_object_index = objects.length - 1;
-    drawCanvas();
-}
-
-function promptForWord() {
-  var prompt_text = "Enter word";
-  return prompt(prompt_text);
+function picObj(obj, x, y, width, height, origWidth, origHeight) {
+  this.type = "pic";
+  this.img = obj;
+  this.x = x;
+  this.y = y;
+  this.origWidth = origWidth;
+  this.origHeight = origHeight;
+  this.width = width;
+  this.height = height;
 }
 
 function word(text, x, y, width, height, fontSize) {
@@ -535,16 +501,48 @@ function determineFontHeight(font) {
   return result;
 }
 
-function handleKeyDown(e) {
-    e = e || window.event;
-    switch (e.keyCode) {
-        case 187:
-          increaseSize();
-          break;
-        case 189:
-          decreaseSize();
-          break;
-    }
+
+
+/**
+ * FUNCTIONS RESPONDING TO BUTTON PUSHES
+ */
+
+
+function startLine() {
+  picking_photo = false;
+  line_started = true;
+  updateLabels();
+}
+
+function startCircle() {
+  picking_photo = false;
+  circle_started = true;
+  updateLabels();
+}
+
+function addWord() {
+  picking_photo = false;
+  line_started = false;
+  circle_started = false;
+  updateLabels();
+  var word_text = promptForWord();
+  if (word_text) {
+    pushWord(word_text, 50, 50, -1, -1, 70);
+  }
+  preGetPhotoResults(word_text);
+}
+
+function pushWord(text, x, y, width, height, size) {
+    var new_word = new word(text, x, y, width, height, size);
+    objects.push(new_word);
+    object_selected = true;
+    selected_object_index = objects.length - 1;
+    drawCanvas();
+}
+
+function promptForWord() {
+  var prompt_text = "Enter word";
+  return prompt(prompt_text);
 }
 
 function topWord() {
@@ -598,11 +596,6 @@ function copyWord() {
     selected_object_index = objects.length - 1;
     drawCanvas();
   }
-}
-
-function getProxyURL(obj) {
-  var url = "imagesave.php?url=" + obj.img.src;
-  return url;
 }
 
 function editWord() {
@@ -837,22 +830,10 @@ function clearImage() {
   drawCanvas();
 }
 
-function getDesc(obj) {
-  if (obj.type == "line") {
-    return "Selected Line";
-  } else if (obj.type == "word") {
-    return "Word '" + obj.text + "'";
-  } else if (obj.type == "pic") {
-    return "Selected Picture";
-  } else if (obj.type == "circle") {
-    return "Selected Oval";
-  }
-}
-
 function pngImage() {
   picking_photo = false;
   updateLabels();
-  imgDiv.innerHTML = "<p>Be patient! :)</p>"; 
+  $('#imgDiv').html("<p>Be patient! :)</p>"); 
   object_selected = false;
   num_images_to_load = 0;
   for (var i = 0; i < objects.length; i++) {
@@ -880,6 +861,11 @@ function pngImage() {
   }
 }
 
+function getProxyURL(obj) {
+  var url = "imagesave.php?url=" + obj.img.src;
+  return url;
+}
+
 function completePngImage() {
   dummy_canvas.width = canvas.width;
   dummy_canvas.height = canvas.height;
@@ -887,11 +873,10 @@ function completePngImage() {
   drawCanvas();
   convertToGrayscale(0, 0, canvas.width, canvas.height, dummy_canvas);
   var img = dummy_canvas.toDataURL("image/png");
-  imgDiv.innerHTML = '<p></p><p></p>PNG that you can save to your computer:<div><img src="'+img+'"/></div>';
+  $('#imgDiv').html('<p></p><p></p>PNG that you can save to your computer:<div><img src="'+img+'"/></div>');
   object_selected = true;
   ctx = canvas.getContext("2d");
   drawCanvas();
-  //DELETE FILES?!
 }
 
 function convertToGrayscale(low_x, low_y, high_x, high_y) {
@@ -908,19 +893,61 @@ function convertToGrayscale(low_x, low_y, high_x, high_y) {
   ctx.putImageData(pixels, low_x, low_y);
 }
 
-function getCursorPosition(e) {
-   	var x;
-    var y;
-    if (e.pageX != undefined && e.pageY != undefined) {
-		x = e.pageX;
-		y = e.pageY;
-    } else {
-		x = e.clientX + document.body.scrollLeft +
-				document.documentElement.scrollLeft;
-		y = e.clientY + document.body.scrollTop +
-				document.documentElement.scrollTop;
-    }
-    x -= canvas.offsetLeft;
-    y -= canvas.offsetTop;
-    return {x:x,y:y};
+
+/**
+ * FUNCTIONS RELATED TO BUTTON CONTROLS
+ */
+
+//Sets buttons visible or invisible based on what's selected now
+function updateLabels() {
+  if (object_selected) {
+    var obj = objects[selected_object_index];
+    var desc = getDesc(obj);
+  }
+
+  if (object_selected && obj.type == "word") {
+    $('#edit_button').show();
+    $('#edit_button').html("Convert " + desc + " to Image");
+  } else {
+    $('#edit_button').hide();
+  }
+  
+  if (object_selected && (obj.type == "line" || obj.type == "circle")) {
+    $('#incr_button').show();
+    $('#decr_button').show();
+  } else {
+    $('#incr_button').hide();
+    $('#decr_button').hide();
+  }
+
+  if (object_selected) {
+    $('#copy_button').show();
+    $('#copy_button').html("Copy " + desc);
+    $('#del_button').show();
+    $('#del_button').html("Delete " + desc);
+    $('#top_button').show();
+    $('#top_button').html("Move " + desc + " to Top");
+  } else {
+    $('#copy_button').hide();
+    $('#del_button').hide();
+    $('#top_button').hide();
+  }
+
+  if (picking_photo) {
+    $('#button_div').toggle(false);
+  } else {
+    $('#button_div').toggle(true);
+  }
+}
+
+function getDesc(obj) {
+  if (obj.type == "line") {
+    return "Selected Line";
+  } else if (obj.type == "word") {
+    return "Word '" + obj.text + "'";
+  } else if (obj.type == "pic") {
+    return "Selected Picture";
+  } else if (obj.type == "circle") {
+    return "Selected Oval";
+  }
 }
