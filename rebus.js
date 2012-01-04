@@ -827,6 +827,7 @@ function clearImage() {
   picking_photo = false;
   updateLabels();
   objects = new Array();
+  $('#imgDiv').html("");
   drawCanvas();
 }
 
