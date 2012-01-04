@@ -600,12 +600,9 @@ function copyWord() {
   }
 }
 
-function getSavedImageFilename(obj, num) {
-  var xmlhttp = new XMLHttpRequest();
-  var url = "imagesave.php?url=" + obj.img.src + "&filenum=" + num + "&unid=" + unique_id;
-  xmlhttp.open("GET", url, false);
-  xmlhttp.send();
-  return xmlhttp.responseText;
+function getProxyURL(obj) {
+  var url = "imagesave.php?url=" + obj.img.src;
+  return url;
 }
 
 function editWord() {
@@ -871,7 +868,7 @@ function pngImage() {
     for (var i = 0; i < objects.length; i++) {
       var obj = objects[i];
       if (obj.type == "pic") {
-        obj.img.src = getSavedImageFilename(obj, i);
+        obj.img.src = getProxyURL(obj);
         obj.img.onload = function() {
           num_images_loaded++;
           if (num_images_loaded == num_images_to_load) {

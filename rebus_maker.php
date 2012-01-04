@@ -1,15 +1,8 @@
-<?php
-session_start();
-?>
-
 <html>
 <head>
 <link rel=stylesheet type="text/css" href="rebus_style.css">
 <script type = "text/javascript" src="jquery.js"></script>
 <script type = "text/javascript" src="rebus.js"></script>
-<script>
-  unique_id = <?php echo json_encode(session_id()); ?>;
-</script>
 </head>
 <body onload = "load();">
 <div>
